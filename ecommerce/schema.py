@@ -11,11 +11,18 @@ class ProductType(DjangoObjectType):
     class Meta:
         model = Product
         fields = "__all__"
+    
+    def resolve_description(self, info):
+        if info.context.user.is_anonymous:
+            return ""
+        return self.description
 
+        
 class OrderProductType(DjangoObjectType):
     class Meta:
         model = OrderProduct
 
+        
 class OrderType(DjangoObjectType):
     class Meta:
         model = Orders
@@ -53,16 +60,18 @@ class AddOrderProduct(graphene.Mutation):
 
 class Checkout(graphene.Mutation):
     checkout = Field(OrderType)
+    message = String()
 
     class Arguments:
         user_id = Int(required=True)
 
     def mutate(self, info, user_id, **kwargs):
-        user = User.objects.get(id=user_id)
+        user = info.context.user
         order = Orders.objects.get(user=user, is_checked_out=False)
         order.is_checked_out=True
         order.save()
         Orders.objects.create(user=user)
+        return Checkout(message="uyguyguy", checkout=order)
 
 class Mutation(graphene.ObjectType):
     add_order_product = AddOrderProduct.Field()
